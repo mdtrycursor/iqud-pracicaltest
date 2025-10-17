@@ -4,8 +4,6 @@ import { createContext, useContext, useReducer, useEffect } from 'react';
 // Initial state for app
 const initialState = {
   isAppReady: false,
-  isServerConnected: false,
-  connectionStatus: 'checking', // 'checking', 'connected', 'disconnected', 'error'
   loadingMessage: 'Initializing application...',
 };
 
@@ -17,33 +15,6 @@ const appReducer = (state, action) => {
         ...state,
         isAppReady: false,
         loadingMessage: action.payload.message || 'Loading...',
-      };
-    case 'SERVER_CONNECTING':
-      return {
-        ...state,
-        connectionStatus: 'checking',
-        loadingMessage: 'Connecting to server...',
-      };
-    case 'SERVER_CONNECTED':
-      return {
-        ...state,
-        isServerConnected: true,
-        connectionStatus: 'connected',
-        loadingMessage: 'Server connected successfully!',
-      };
-    case 'SERVER_DISCONNECTED':
-      return {
-        ...state,
-        isServerConnected: false,
-        connectionStatus: 'disconnected',
-        loadingMessage: 'Server connection lost',
-      };
-    case 'SERVER_ERROR':
-      return {
-        ...state,
-        isServerConnected: false,
-        connectionStatus: 'error',
-        loadingMessage: 'Server connection error',
       };
     case 'APP_READY':
       return {
@@ -68,44 +39,12 @@ const AppContext = createContext();
 export const AppProvider = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
-  // Check server connection on app start
+  // Initialize app on mount
   useEffect(() => {
-    const checkServerConnection = async () => {
-      try {
-        dispatch({ type: 'SERVER_CONNECTING' });
-        
-        // Try to ping the server
-        const response = await fetch('/api/health', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.ok) {
-          dispatch({ type: 'SERVER_CONNECTED' });
-          // Small delay to show the connection success message
-          setTimeout(() => {
-            dispatch({ type: 'APP_READY' });
-          }, 1000);
-        } else {
-          dispatch({ type: 'SERVER_ERROR' });
-        }
-      } catch (error) {
-        console.log('Server not available, will retry...');
-        dispatch({ type: 'SERVER_DISCONNECTED' });
-        
-        // Retry connection after 3 seconds
-        setTimeout(() => {
-          checkServerConnection();
-        }, 3000);
-      }
-    };
-
-    // Start checking connection after a short delay
+    // Small delay to show the loading message
     const timer = setTimeout(() => {
-      checkServerConnection();
-    }, 500);
+      dispatch({ type: 'APP_READY' });
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, []);
